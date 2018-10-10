@@ -16,8 +16,71 @@ data import
 ```{r}
 devtools::install_github("p8105/p8105.datasets")
 library(p8105.datasets)
-data(brfss_smart2010)
+data(brfss_smart2010) 
+modified_brfss = 
+  brfss_smart2010 %>% 
+  janitor::clean_names() %>% 
+  filter(topic == "Overall Health") %>% 
+  mutate(response =factor(response, levels = c("Excellent", "Very good", "Good", "Fair", "Poor"))) %>% 
+ arrange(response)
+
 ```
+###1
+```{r}
+modified_brfss %>% 
+  filter(year == "2002") %>% 
+  group_by(locationabbr, locationdesc) %>% 
+  summarise(number = n()) %>% 
+  group_by(locationabbr) %>% 
+  summarise(number= n()) %>% 
+  filter(number == "7") 
+```
+* In 2002, state CT, FL, NC were observed at 7 locations.
+###2
+```{r}
+modified_brfss %>% 
+  group_by(year, locationabbr) %>% 
+  summarise(number = n()) %>% 
+  ggplot(aes(x = year, y = number, color = locationabbr)) + geom_line()
+```
+###3
+```{r}
+modified_brfss %>% 
+  filter(locationabbr == "NY") %>% 
+  filter(year == "2002" | year == "2006" | year == "2010") %>%
+  select(year, locationdesc, response, sample_size) %>% 
+  spread(key = response, value = sample_size) %>% 
+  janitor::clean_names() %>% 
+  mutate(excellent_proption = excellent / (excellent + very_good + good + fair + poor)) %>% select(year, locationdesc, excellent_proption) %>% 
+  group_by(year) %>% 
+  summarise(mean = mean(excellent_proption), sd = sd(excellent_proption))
+```
+###4
+```{r}
+tidy_response_data =
+modified_brfss %>% 
+select(year, locationabbr, locationdesc, response, sample_size) %>% 
+ spread(key = response, value = sample_size) %>% 
+  janitor::clean_names() %>% 
+  mutate(excellent = excellent / (excellent + very_good + good + fair + poor), 
+         very_good = very_good / (excellent + very_good + good + fair + poor), 
+         good = good / (excellent + very_good + good + fair + poor),
+         fair = fair / (excellent + very_good + good + fair + poor),
+         poor = poor / (excellent + very_good + good + fair + poor)
+         ) %>% 
+# replace with proportion of response category
+  group_by(year, locationabbr) %>% 
+  summarise(mean_excellent_proportion = mean(excellent), 
+            mean_very_good_proportion = mean(very_good),
+            mean_good_proportion = mean(good), 
+            mean_fair_proportion = mean(fair), 
+            mean_poor_proportion = mean(poor))  
+  head(tidy_response_data)
+  Excellent_plot = ggplot(tidy_response_data, aes(x = year, y = mean_excellent_proportion, color = locationabbr)) + geom_line()
+ 
+```
+
+
 
 
 
